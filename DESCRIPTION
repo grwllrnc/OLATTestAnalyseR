@@ -1,0 +1,10 @@
+Package: OLATTestAnalyzeR
+Title: Analysis and formatting of OLAT Single choice tests
+Version: 0.0.0.9000
+Authors@R: person("Benjamin", "Gerwoll-Ronca", email = "benjamin.gerwoll-ronca@uzh.ch", role = c("aut", "cre"))
+Description: OLATTestAnalyzeR does item analysis and formatting of OLAT single choice test.
+Depends: R (>= 3.2.5)
+License: GPLv3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 5.0.1.9000
