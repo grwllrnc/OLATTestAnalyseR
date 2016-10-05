@@ -26,13 +26,13 @@
 #'  plot_score()
 
 # main function
-analyzer <- function(file, sep=';', encoding='Latin-1'){
+analyzer <- function(file, sep=';', encoding='ISO-8859-1'){
   
   # setting working directory to path
   # setwd(path)
   
   # load OLAT export of the exam
-  csv <- read.csv(file, header = FALSE, sep = sep, encoding = 'ISO-8859-1', stringsAsFactors = FALSE)
+  csv <- read.csv(file, header = FALSE, sep = sep, encoding = encoding, stringsAsFactors = FALSE)
 
   ##### Regex patterns #####
   
