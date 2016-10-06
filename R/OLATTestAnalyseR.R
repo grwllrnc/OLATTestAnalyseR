@@ -2,8 +2,8 @@
 #'   OLATTestAnalyzeR
 #'   
 #'   @author Benjamin Gerwoll-Ronca
-#'   @Version 0.0.9000
-#'   @License GPLv3
+#'   @version 0.0.9001
+#'   @license GPL-3
 #   
 #'   => FOR SINGLE CHOICE QUESTIONS ONLY !
 #
@@ -20,22 +20,24 @@
 #'   - Bar chart Distribution of completed exams over examination period
 #'  @export
 #'  @examples
-#'  analyser()
-#'  analyser.write()
-#'  plot_discrimination()
-#'  plot_score()
+#'  test <- analyser('OLAT SCQs.xls', sep = '\t') # reading xls-file with analyzer()
+#'  plot_discrimination(test)                     # scatter plot of selectivity vs. difficulty
+#'  plot_score(test)                              # bar chart distribution of test scores
+#'  analyser.write(test, 'OLAT SCQs formatted.xls', keys = 'question_keys.csv') # writing formatted test into xls-file
+
 
 # main function
-analyzer <- function(file, sep=';', encoding='Latin-1'){
+analyzer <- function(file, sep=';', encoding='ISO-8859-1'){
   
   # setting working directory to path
   # setwd(path)
   
   # load OLAT export of the exam
-  csv <- read.csv(file, header = FALSE, sep = sep, encoding = 'ISO-8859-1', stringsAsFactors = FALSE)
-
+  csv <- read.csv(file, header = FALSE, sep = sep, encoding = encoding, stringsAsFactors = FALSE)
+  
   ##### Regex patterns #####
   
+  #path_patt <- '[-[:alnum:][:space:]%_]+\\.(csv|xls|txt)$'
   num_answers <- '\\d+_(R|C)\\d+'
   scores <- '\\d+_Score'
   
@@ -103,6 +105,17 @@ analyzer <- function(file, sep=';', encoding='Latin-1'){
     rpb <- ((df['p-mean', col] - df['q-mean', col]) / std) * sqrt((n_1 * n_0) / n**2)
     return(rpb)
   }
+  
+  get_path <- function(file_path){
+    path_patt <- '[-[:alnum:][:space:]%_]+\\.(csv|xls|txt)$'
+    match_len <- nchar(regmatches(file_path, regexpr(path_patt, file_path)))
+    stop <- nchar(file_path) - match_len
+    return(substring(file_path, 1, stop))
+  }
+  
+  ##### Setting working directory ####
+  path <- get_path(file)
+  setwd(path)
   
   ##### Preparing the dataframe #####
   
@@ -184,8 +197,9 @@ plot_discrimination <- function(df){
   score_cols <- subset(df[, scores])
   difficulty <- as.vector(as.matrix(score_cols['p',]))
   selectivity <- as.vector(as.matrix(score_cols['r',]))
-  plot(difficulty, selectivity, main = 'Selectivity vs. difficulty', ylab = 'Selectivity (rpb)', xlab = 'Difficulty (p)')
+  plot(difficulty, selectivity, xlim=rev(c(0.0,1.0)), main = 'Selectivity vs. difficulty', ylab = 'Selectivity (rpb)', xlab = 'Difficulty (p)')
   abline(h=0, col='blue')
+  return(list(selectivity, difficulty))
 }
 
 # Distribution of the test score
@@ -212,13 +226,9 @@ plot_score <- function(df, max_score=25){
 }
 
 
-# Distribution of time
-
-
-
 ##### Preparing for output as xls file #####
 
-analyzer.write <- function(df, keys = NULL, file = 'OLAT_Test_Analysis.xls', sep = ';', row.names = FALSE){
+analyzer.write <- function(df, file = 'OLAT_Test_Analysis.xls', keys = NULL, sep = '\t', na = '', row.names = FALSE){
   #### Helper functions ####
   put_letters <- function(item, keys=NULL){
     if (!is.null(keys)){
@@ -244,6 +254,7 @@ analyzer.write <- function(df, keys = NULL, file = 'OLAT_Test_Analysis.xls', sep
     keys <- read.table(csv, sep=sep, stringsAsFactors = FALSE)
     return(keys$V2)
   }
+
   
   # resetting the column index and adding question and header rows to df
   colnames(df) <- questions[1,]
@@ -277,9 +288,6 @@ analyzer.write <- function(df, keys = NULL, file = 'OLAT_Test_Analysis.xls', sep
     }
   }
   
-  # replacing NA's with ''
-  #output_csv[is.na(output_csv)] <- ''
-  
   # saving dataframe as xls file 
-  write.csv(output_csv, file = file, sep = ';', na = '', row.names = FALSE)
+  write.table(output_csv, file = file, sep = sep, na = na, row.names = FALSE)
 }
