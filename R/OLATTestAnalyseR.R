@@ -2,8 +2,8 @@
 #'   OLATTestAnalyzeR
 #'   
 #'   @author Benjamin Gerwoll-Ronca
-#'   @Version 0.0.9000
-#'   @License GPLv3
+#'   @version 0.0.9001
+#'   @license GPLv3
 #   
 #'   => FOR SINGLE CHOICE QUESTIONS ONLY !
 #
@@ -33,7 +33,7 @@ analyzer <- function(file, sep=';', encoding='ISO-8859-1'){
   
   # load OLAT export of the exam
   csv <- read.csv(file, header = FALSE, sep = sep, encoding = encoding, stringsAsFactors = FALSE)
-
+  
   ##### Regex patterns #####
   
   num_answers <- '\\d+_(R|C)\\d+'
@@ -184,8 +184,9 @@ plot_discrimination <- function(df){
   score_cols <- subset(df[, scores])
   difficulty <- as.vector(as.matrix(score_cols['p',]))
   selectivity <- as.vector(as.matrix(score_cols['r',]))
-  plot(difficulty, selectivity, main = 'Selectivity vs. difficulty', ylab = 'Selectivity (rpb)', xlab = 'Difficulty (p)')
+  plot(difficulty, selectivity, xlim=rev(c(0.0,1.0)), main = 'Selectivity vs. difficulty', ylab = 'Selectivity (rpb)', xlab = 'Difficulty (p)')
   abline(h=0, col='blue')
+  return(list(selectivity, difficulty))
 }
 
 # Distribution of the test score
@@ -210,10 +211,6 @@ plot_score <- function(df, max_score=25){
   axis(4, at = seq(0,100,20))
   abline(v=median_score, col='green', lwd=2)
 }
-
-
-# Distribution of time
-
 
 
 ##### Preparing for output as xls file #####
@@ -277,9 +274,6 @@ analyzer.write <- function(df, keys = NULL, file = 'OLAT_Test_Analysis.xls', sep
     }
   }
   
-  # replacing NA's with ''
-  #output_csv[is.na(output_csv)] <- ''
-  
   # saving dataframe as xls file 
-  write.csv(output_csv, file = file, sep = ';', na = '', row.names = FALSE)
+  write.table(output_csv, file = file, sep = '\t', na = '', row.names = FALSE)
 }
