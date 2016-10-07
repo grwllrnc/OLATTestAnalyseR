@@ -1,8 +1,8 @@
-#'   OLATTestAnalyzeR
+#' OLATTestAnalyzeR
 #'   
-#'   @description Formats and analysis OLAT - Online Learning and Training Single Choice Tests
+#' @description Formats and analysis OLAT - Online Learning and Training Single Choice Tests
 #'   
-#'   @details 
+#' @details 
 #'   Features:
 # 
 #'   - Formatted output with ...
@@ -13,31 +13,21 @@
 #'     - Proportion of correct answers (p = difficulty)
 #'     - Proportion of incorrect answers
 #'     - Point-biserial correlation coefficient for each question (r = selectivity) 
-#'   - Scatter plot Difficulty vs. Selectivity
-#'   - Bar chart Distribution of Test score
-#'   - Bar chart Distribution of completed exams over examination period
 #'  
-#'  @param file xls or csv file
-#'  @param sep tab ('\t') as default delimiter
-#'  @param encoding 'ISO-8859-1' as default
+#' @param file xls or csv file
+#' @param sep tab ('\t') as default delimiter
+#' @param encoding 'ISO-8859-1' as default
 #'  
-#'  @author Benjamin Gerwoll-Ronca
-#'  @version 0.0.9001
-#'  @license GPL-3
-#'  @keywords Item analysis
+#' @author Benjamin Gerwoll-Ronca
+#' @version 0.0.9001
+#' @license GPL-3
+#' @keywords Item analysis
 #'
-#'  @examples
+#' @examples
 #'  test <- analyser('OLAT SCQs.xls', sep = '\t') # reading xls-file with analyzer()
 #'  
-#'  plot_discrimination(test)                     # scatter plot of selectivity vs. difficulty
-#'  
-#'  plot_score(test)                              # bar chart distribution of test scores
-#'  
-#'  analyser.write(test, 'OLAT SCQs formatted.xls', keys = 'question_keys.csv') # writing formatted test into xls-file
-#'
-#'  @export
+#' @export
 
-# main function
 analyzer <- function(file, sep=';', encoding='ISO-8859-1'){
   
   # setting working directory to path
@@ -189,116 +179,4 @@ analyzer <- function(file, sep=';', encoding='ISO-8859-1'){
     }
   }
   return(df)
-}
-
-##### Plotting #####
-
-# Selectivity vs. difficulty
-plot_discrimination <- function(df){
-  score_patt <- '\\d+_Score'
-  scores <- vector()
-  cols <- colnames(df)
-  j <- 1
-  for (i in 1:length(cols)){
-    if (grepl(score_patt, cols[i])){
-      scores[j] <- cols[i]
-      j <- j + 1
-    }
-  }
-  score_cols <- subset(df[, scores])
-  difficulty <- as.vector(as.matrix(score_cols['p',]))
-  selectivity <- as.vector(as.matrix(score_cols['r',]))
-  plot(difficulty, selectivity, xlim=rev(c(0.0,1.0)), main = 'Selectivity vs. difficulty', ylab = 'Selectivity (rpb)', xlab = 'Difficulty (p)')
-  abline(h=0, col='blue')
-  return(list(selectivity, difficulty))
-}
-
-# Distribution of the test score
-plot_score <- function(df, max_score=25){
-  n <- length(!is.na(df[, 'Name']))
-  test_score <- as.matrix(table(factor(df[1:n,'Test score'], levels=1:max_score)))
-  cumfreq <- numeric()
-  for(i in 1:max_score){
-    if(i > 1){
-      cumfreq[i] <- test_score[i] / sum(test_score) * 100 + cumfreq[i-1]
-    }
-    else{
-      cumfreq[i] <- test_score[i] / sum(test_score) * 100
-    }
-  }
-  median_score <- median(df[1:n,'Test score'])
-  par(mar=c(5, 4, 4, 6) + 0.1)
-  ymax <- max(test_score) + 5
-  barplot(test_score[,1], ylim = c(0,ymax),main = 'Distribution of Test score', xlab = 'Score', ylab = 'Frequency', col = 'chocolate')
-  par(new = T)
-  plot(cumfreq, axes=FALSE, type = 'l', lwd=2, col = 'blue', ylab=NA, xlab=NA)
-  axis(4, at = seq(0,100,20))
-  abline(v=median_score, col='green', lwd=2)
-}
-
-
-##### Preparing for output as xls file #####
-
-analyzer.write <- function(df, file = 'OLAT_Test_Analysis.xls', keys = NULL, sep = '\t', na = '', row.names = FALSE){
-  #### Helper functions ####
-  put_letters <- function(item, keys=NULL){
-    if (!is.null(keys)){
-      k <- read_keys(keys)
-    }
-    else {
-      k <- keys
-    }
-    question_patt <- '^\\d+'
-    answer_patt <- '\\d+$'
-    q <- regmatches(item, regexpr(question_patt, item))
-    d <- regmatches(item, regexpr(answer_patt, item))
-    l <- letters[as.integer(d)]
-    if (!is.null(k)){
-      if (k[as.integer(q)] == l){
-        l <- paste(l, '*', sep = '')
-      }
-    }
-    return(l)
-  }
-  
-  read_keys <- function(csv, sep=';'){
-    keys <- read.table(csv, sep=sep, stringsAsFactors = FALSE)
-    return(keys$V2)
-  }
-
-  
-  # resetting the column index and adding question and header rows to df
-  colnames(df) <- questions[1,]
-  colnames(header) <- questions[1,]
-  output_csv <- rbind(header, df)
-  
-  # enumerate questions
-  c_names <- colnames(output_csv)
-  j <- 1
-  for (i in 1:length(c_names)){
-    if (c_names[i] != ''){
-      c_names[i] <- paste(paste(toString(j), '.', sep = ''), c_names[i], sep = ' ')
-      j <- j + 1
-    }
-  }
-  colnames(output_csv) <- c_names
-  
-  # replacing answer labels with letters
-  num_answers <- '\\d+_(R|C)\\d+'
-  for (i in 1:length(output_csv[1,])){
-    if (grepl(num_answers, output_csv[1,][i])){
-      if (is.null(keys)){
-        output_csv[1,][i] <- put_letters(output_csv[1,][i])
-      }
-      else {
-        output_csv[1,][i] <- put_letters(output_csv[1,][i], keys)
-      }
-    }
-    else {
-      next
-    }
-  }
-  
-  # saving dataframe as xls file 
-  write.table(output_csv, file = file, sep = sep, na = na, row.names = FALSE)
 }
