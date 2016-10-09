@@ -14,21 +14,21 @@
 #'     - Proportion of incorrect answers
 #'     - Point-biserial correlation coefficient for each question (r = selectivity) 
 #'  
-#' @param file xls or csv file
+#' @param file csv file
 #' @param sep tab ('\t') as default delimiter
 #' @param encoding 'ISO-8859-1' as default
 #'  
 #' @author Benjamin Gerwoll-Ronca
-#' @version 0.0.9001
+#' @version 0.0.9003
 #' @license GPL-3
 #' @keywords Item analysis
 #'
 #' @examples
-#'  test <- analyser('OLAT SCQs.xls', sep = '\t') # reading xls-file with analyzer()
+#'  test <- analyser('OLAT SCQs.csv', sep = '\t') # reading csv-file with analyzer()
 #'  
 #' @export
 
-analyzer <- function(file, sep=';', encoding='ISO-8859-1'){
+analyzer <- function(file, sep='\t', encoding='ISO-8859-1'){
   
   # setting working directory to path
   # setwd(path)
@@ -108,10 +108,15 @@ analyzer <- function(file, sep=';', encoding='ISO-8859-1'){
   }
   
   get_path <- function(file_path){
-    path_patt <- '[-[:alnum:][:space:]%_]+\\.(csv|xls|txt)$'
+    path_patt <- '[-[:alnum:][:space:]%_+]+\\.(csv|xls|txt)$'
     match_len <- nchar(regmatches(file_path, regexpr(path_patt, file_path)))
     stop <- nchar(file_path) - match_len
-    return(substring(file_path, 1, stop))
+    if (stop == 0){
+      return('.')
+    }
+    else{
+      return(substring(file_path, 1, stop))
+    }
   }
   
   ##### Setting working directory ####
