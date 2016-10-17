@@ -19,7 +19,7 @@
 #' @param encoding 'ISO-8859-1' as default
 #'  
 #' @author Benjamin Gerwoll-Ronca
-#' @version 0.0.9003
+#' @version 0.0.9004
 #' @license GPL-3
 #' @keywords Item analysis
 #'
@@ -40,13 +40,14 @@ analyzer <- function(file, sep='\t', encoding='ISO-8859-1'){
   
   #path_patt <- '[-[:alnum:][:space:]%_]+\\.(csv|xls|txt)$'
   num_answers <- '\\d+_(R|C)\\d+'
-  scores <- '\\d+_Score'
+  scores <- '\\d+_(Score|Pkt|Pts)'
   
   ##### Helper Functions #####
   
   split_dataframe <- function(data){
+    legends <- c('Legend', 'Legende', 'Légende')
     for (i in 2:nrow(data)){      # start with row 2 (header)
-      if (data[i,1] == ''){
+      if (data[i,1] == '' | is.na(data[i,1]) | data[i,1] %in% legends){
         end <- i - 1
         break
       }
@@ -56,18 +57,18 @@ analyzer <- function(file, sep='\t', encoding='ISO-8859-1'){
   
   convert_datatypes <- function(df){
     num_answers <- '\\d+_(R|C)\\d+'
-    scores <- '\\d+_Score'
-    numeric_cols <- c('Sequence number', 'Test score', 'Total time (s)')
-    boolean_col <- 'Passed'
-    date_col <- 'Date'
+    scores <- '\\d+_(Score|Pkt|Pts)'
+    numeric_cols <- c('Sequence number', 'Test score', 'Total time (s)', 'Laufnummer', 'Test Punkte', 'Gesamtdauer (s)', 'Numéro courant', 'Points test', 'Durée totale (s)')
+    boolean_col <- c('Passed', 'Bestanden', 'Réussi')
+    date_col <- c('Date', 'Datum')
     for (col in colnames(df)){
       if (col %in% numeric_cols | grepl(num_answers, col) | grepl(scores, col)){
         df[,col] <- as.numeric(df[,col])
       }
-      if (col == boolean_col){
+      if (col %in% boolean_col){
         df[,col] <- as.logical(df[,col])
       }
-      if (col == date_col){
+      if (col %in% date_col){
         df[,col] <- as.POSIXct(df[,col], format = "%Y-%m-%dT%H:%M:%S")
       }
     }
@@ -75,12 +76,22 @@ analyzer <- function(file, sep='\t', encoding='ISO-8859-1'){
   }
   
   group_mean <- function(df, col, x, n){
+    if ('Test score' %in% colnames(df)){
+      test_score <- 'Test score'
+    }
+    if ('Test Punkte' %in% colnames(df)) {
+      test_score <- 'Test Punkte'
+    }
+    if ('Points test' %in% colnames(df)){
+      test_score <- 'Points test'
+    }
     tmp_score <- numeric()
     for (i in 1:n){
       if (df[i, col] == x){
-        tmp_score <- c(tmp_score, df[i, 'Test score'] - x)
+        tmp_score <- c(tmp_score, df[i, test_score] - x)
       }
     }
+
     group_mean <- mean(tmp_score)
     if (is.na(group_mean)){
       return(0)
@@ -91,13 +102,22 @@ analyzer <- function(file, sep='\t', encoding='ISO-8859-1'){
   }
   
   point_biserial_corr <- function(df, col, n){
+    if ('Test score' %in% colnames(df)){
+      test_score <- 'Test score'
+    }
+    if ('Test Punkte' %in% colnames(df)) {
+      test_score <- 'Test Punkte'
+    }
+    if ('Points test' %in% colnames(df)){
+      test_score <- 'Points test'
+    }
     tmp_score = numeric()
     for (i in 1:n){
       if (df[i, col] == 1){
-        tmp_score[i] <- df[i, 'Test score'] - 1
+        tmp_score[i] <- df[i, test_score] - 1
       }
       else {
-        tmp_score[i] <- df[i, 'Test score']
+        tmp_score[i] <- df[i, test_score]
       }
     }
     std <- sd(tmp_score)
@@ -128,6 +148,9 @@ analyzer <- function(file, sep='\t', encoding='ISO-8859-1'){
   # cutting off the legend
   df <- split_dataframe(csv)
   
+  # exclude columns that only contains NA's
+  df <- df[, colSums(is.na(df)) != nrow(df)]
+  
   # defining question and header row
   # questions <- df[1,]
   #header <- df[2,]
@@ -154,22 +177,22 @@ analyzer <- function(file, sep='\t', encoding='ISO-8859-1'){
   df['r',] <- NA
   
   # adding row description in col 'Sequence number'
-  df['Sum','Sequence number'] <- 'Sum'
-  df['p','Sequence number'] <- 'p'
-  df['q','Sequence number'] <- 'q'
-  df['p-mean','Sequence number'] <- 'p mean'
-  df['q-mean','Sequence number'] <- 'q mean'
-  df['r','Sequence number'] <- 'Point-biserial correlation coefficient'
+  df['Sum', 1] <- 'Sum'
+  df['p', 1] <- 'p'
+  df['q', 1] <- 'q'
+  df['p-mean', 1] <- 'p mean'
+  df['q-mean', 1] <- 'q mean'
+  df['r', 1] <- 'Point-biserial correlation coefficient'
   
   # looping over columns
   score_cols <- character()
-  
+  test_score <- c('Test score', 'Test Punkte', 'Points test')
   for (col in colnames(df)){
     if (grepl(num_answers, col)){
       # summing answer columns
       df['Sum', col] <- sum(df[1:n,col], na.rm = TRUE) # sum of answer columns
     }
-    if (col == 'Test score'){
+    if (col %in% test_score){
       # mean of Test score
       df['Sum', col] <- mean(df[1:n,col], na.rm = TRUE)
     }
