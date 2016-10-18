@@ -5,7 +5,7 @@
 #' @param df output of analyzer() function
 #'  
 #' @author Benjamin Gerwoll-Ronca
-#' @version 0.0.9001
+#' @version 0.0.9003
 #' @license GPL-3
 #' @keywords Item analysis
 #'
@@ -16,7 +16,7 @@
 
 # Selectivity vs. difficulty
 plot_discrimination <- function(df){
-  score_patt <- '\\d+_Score'
+  score_patt <- '\\d+_(Score|Pkt|Pts)'
   scores <- vector()
   cols <- colnames(df)
   j <- 1
@@ -31,5 +31,4 @@ plot_discrimination <- function(df){
   selectivity <- as.vector(as.matrix(score_cols['r',]))
   plot(difficulty, selectivity, xlim=rev(c(0.0,1.0)), main = 'Selectivity vs. difficulty', ylab = 'Selectivity (rpb)', xlab = 'Difficulty (p)')
   abline(h=0, col='blue')
-  return(list(selectivity, difficulty))
 }
